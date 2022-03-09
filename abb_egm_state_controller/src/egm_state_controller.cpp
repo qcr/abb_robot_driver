@@ -39,6 +39,8 @@
 #include <abb_robot_cpp_utilities/mapping.h>
 #include <abb_robot_cpp_utilities/parameters.h>
 #include <abb_robot_cpp_utilities/verification.h>
+// Added for debugging
+#include <google/protobuf/text_format.h>
 
 #include "abb_egm_state_controller/egm_state_controller.h"
 
@@ -113,9 +115,11 @@ bool EGMStateController::init(EGMStateInterface* p_hw, ros::NodeHandle& root_nh,
   }
 
   //--------------------------------------------------------
-  // Setup publisher
+  // Setup publisher(s)
   //--------------------------------------------------------
   p_egm_state_publisher_.reset(new EGMStatePublisher(root_nh, "egm_states", 1));
+  // [09/03/22] Added new publisher (realtime) object for force data
+  p_egm_force_publisher_.reset(new EGMForcePublisher(root_nh, "egm_forces", 1));
 
   // Allocate ROS messages.
   for(const auto& handle : egm_state_handles_)
@@ -123,10 +127,15 @@ bool EGMStateController::init(EGMStateInterface* p_hw, ros::NodeHandle& root_nh,
     auto p_data{handle.getEGMChannelDataPtr()};
 
     abb_egm_msgs::EGMChannelState channel{};
+    // [09/03/22] Added for force output
+    abb_custom_msgs::EGMChannelForces channel_forces{};
 
     // General information.
+    // [09/03/22] Added for force output
     channel.name = handle.getName();
+    channel_forces.name = handle.getName();
     channel.active = p_data->is_active;
+    channel_forces.active = p_data->is_active;
 
     // Status information.
     channel.egm_convergence_met = p_data->input.status().egm_convergence_met();
@@ -136,6 +145,38 @@ bool EGMStateController::init(EGMStateInterface* p_hw, ros::NodeHandle& root_nh,
     channel.utilization_rate = p_data->input.status().utilization_rate();
 
     p_egm_state_publisher_->msg_.egm_channels.push_back(channel);
+
+    // Force information
+  #if 1
+    //DEBUGGING SECTION
+    abb::egm::wrapper::MeasuredForce forces;
+    forces.CopyFrom(p_data->input.measuredforce());
+    google::protobuf::RepeatedField<double> measured_forces = forces.force();
+
+    std::string debug_string;
+    google::protobuf::TextFormat::PrintToString(forces, &debug_string);
+    std::cout << "Measured Forces:\n" << debug_string << std::endl;
+  #endif
+    if(measured_forces.size() == 6)
+    {
+      channel_forces.linear_x = measured_forces[0];
+      channel_forces.linear_y = measured_forces[1];
+      channel_forces.linear_z = measured_forces[2];
+      channel_forces.torque_x = measured_forces[3];
+      channel_forces.torque_y = measured_forces[4];
+      channel_forces.torque_z = measured_forces[5];
+    }
+    else
+    {
+      channel_forces.linear_x = -10.0;
+      channel_forces.linear_y = -10.0;
+      channel_forces.linear_z = -10.0;
+      channel_forces.torque_x = -10.0;
+      channel_forces.torque_y = -10.0;
+      channel_forces.torque_z = -10.0;  
+    }
+
+    p_egm_force_publisher_->msg_.egm_channel_forces.push_back(channel_forces);
   }
 
   return true;
@@ -175,6 +216,54 @@ void EGMStateController::update(const ros::Time& time, const ros::Duration& peri
       }
 
       p_egm_state_publisher_->unlockAndPublish();
+    }
+
+    //-----------------------------------------------------
+    // [09/03/22] Added for Force Information - Try to publish
+    //-----------------------------------------------------
+    if(p_egm_force_publisher_->trylock())
+    {
+      p_egm_force_publisher_->msg_.header.stamp = time;
+      for(size_t i = 0; i < egm_state_handles_.size() && i < p_egm_force_publisher_->msg_.egm_channel_forces.size(); ++i)
+      {
+        auto p_data{egm_state_handles_[i].getEGMChannelDataPtr()};
+
+        // Status information.
+        auto& channel{p_egm_force_publisher_->msg_.egm_channel_forces[i]};
+        channel.active = p_data->is_active;
+
+        // Force information
+#if 1
+        //DEBUGGING      
+        abb::egm::wrapper::MeasuredForce forces;
+        forces.CopyFrom(p_data->input.measuredforce());
+        google::protobuf::RepeatedField<double> measured_forces = forces.force();
+
+        std::string debug_string;
+        google::protobuf::TextFormat::PrintToString(forces, &debug_string);
+        std::cout << "Measured Forces:\n" << debug_string << std::endl;
+#endif
+        if(measured_forces.size() == 6)
+        {
+          channel.linear_x = measured_forces[0];
+          channel.linear_y = measured_forces[1];
+          channel.linear_z = measured_forces[2];
+          channel.torque_x = measured_forces[3];
+          channel.torque_y = measured_forces[4];
+          channel.torque_z = measured_forces[5];
+        }
+        else
+        {
+          channel.linear_x = -10.0;
+          channel.linear_y = -10.0;
+          channel.linear_z = -10.0;
+          channel.torque_x = -10.0;
+          channel.torque_y = -10.0;
+          channel.torque_z = -10.0;  
+        }
+      }
+
+      p_egm_force_publisher_->unlockAndPublish();
     }
   }
 }

@@ -11,6 +11,15 @@
 **Please note that the included packages have not been productized, and that academia is the intended audience.**\
 **The packages are provided "as-is", and as such no more than limited support can be expected.**
 
+## QCR Note
+This repository (and subsequent packages) were forked from [ROS Industrial's ABB Robot Driver](https://github.com/ros-industrial/abb_robot_driver) for minor updates (see affected package list below) towards extracting and publishing force-torque data from an end-effector force-torque module (uses the ABB force control framework).
+
+***Affected Packages***
+- abb_egm_state_controller:
+  - Dependency on new custom message types (for force data output)
+  - New publisher output for force data
+  - Minor updates surrounding extraction from protobuf data towards ROS publishing
+
 ## Overview
 
 ROS packages intended to ease interaction between ABB robot controllers and ROS-based systems, by providing *ready-to-run* ROS nodes.

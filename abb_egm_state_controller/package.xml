@@ -16,6 +16,8 @@
 
   <depend>abb_egm_hardware_interface</depend>
   <depend>abb_egm_msgs</depend>
+  <!-- [09/03/22] Added qcr custom message dependency -->
+  <depend>abb_custom_msgs</depend>
   <depend>abb_robot_cpp_utilities</depend>
   <depend>controller_interface</depend>
   <depend>pluginlib</depend>

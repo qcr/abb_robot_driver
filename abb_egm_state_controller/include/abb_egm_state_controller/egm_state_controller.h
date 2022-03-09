@@ -48,6 +48,8 @@
 #include <abb_egm_hardware_interface/egm_state_interface.h>
 
 #include <abb_egm_msgs/EGMState.h>
+// [09/02/22] Added qcr custom abb message package
+#include <abb_custom_msgs/EGMForces.h>
 
 namespace abb
 {
@@ -100,6 +102,8 @@ public:
 
 private:
   using EGMStatePublisher = realtime_tools::RealtimePublisher<abb_egm_msgs::EGMState>;
+  // [09/03/22] Added a realtime publisher object for specifically the force readout
+  using EGMForcePublisher = realtime_tools::RealtimePublisher<abb_custom_msgs::EGMForces>;
 
   /**
    * \brief Default publish rate [Hz].
@@ -125,6 +129,14 @@ private:
    * \brief EGM state publisher.
    */
   std::shared_ptr<EGMStatePublisher> p_egm_state_publisher_;
+
+  /**
+   * \brief EGM force publisher.
+   * 
+   * [09/03/22] Added for outputting force data from force torque sensor
+   */
+  std::shared_ptr<EGMForcePublisher> p_egm_force_publisher_;
+
 };
 
 }
