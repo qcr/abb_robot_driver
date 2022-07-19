@@ -48,8 +48,8 @@
 #include <abb_egm_hardware_interface/egm_state_interface.h>
 
 #include <abb_egm_msgs/EGMState.h>
+#include <geometry_msgs/WrenchStamped.h>
 // [09/02/22] Added qcr custom abb message package
-#include <abb_custom_msgs/EGMForces.h>
 
 namespace abb
 {
@@ -103,7 +103,7 @@ public:
 private:
   using EGMStatePublisher = realtime_tools::RealtimePublisher<abb_egm_msgs::EGMState>;
   // [09/03/22] Added a realtime publisher object for specifically the force readout
-  using EGMForcePublisher = realtime_tools::RealtimePublisher<abb_custom_msgs::EGMForces>;
+  using EGMForcePublisher = realtime_tools::RealtimePublisher<geometry_msgs::WrenchStamped>;
 
   /**
    * \brief Default publish rate [Hz].
